@@ -1478,6 +1478,10 @@
 }
 @media (min-width: 769px) {
   .search-container {
+    /* display: block !important; */ /* Default to hidden, shown by .show class */
+    display: none;
+  }
+  .search-container.show { /* Ensure .show works on desktop too */
     display: block !important;
   }
 }
@@ -2624,6 +2628,10 @@
                     if (screen.orientation && screen.orientation.unlock) {
                         screen.orientation.unlock();
                     }
+                    // Ensure search container is hidden when exiting fullscreen
+                    if (elements.searchContainer) {
+                        elements.searchContainer.classList.remove('show');
+                    }
                 });
             }
 
@@ -2843,6 +2851,9 @@
             elements.closeSearchBtn.addEventListener('click', function() {
                 elements.searchInput.value = '';
                 elements.searchResults.style.display = 'none';
+                if (elements.searchContainer) {
+                    elements.searchContainer.classList.remove('show');
+                }
             });
 
             // Carousel controls
@@ -3329,8 +3340,24 @@ document.addEventListener('click', (e) => {
 function fixSearchVisibilityOnResize() {
   const isMobile = window.innerWidth <= 768;
   if (!isMobile) {
-    searchContainer.classList.remove('show');
-    searchContainer.style.display = 'block';
+    // searchContainer.classList.remove('show'); // Keep this, good for state cleaning if mobile was left open
+    // searchContainer.style.display = 'block'; // REMOVE: Do not force display, rely on .show class
+    // If search was open (.show) and we resize to desktop, it should remain open.
+    // If it was closed, it should remain closed.
+    // The CSS now handles the default hidden state for desktop.
+    // If '.show' is present, it will be visible due to CSS.
+    // If not mobile, and searchContainer does NOT have 'show', ensure it's hidden (CSS should do this)
+    // If it IS mobile, the mobile CSS rules apply (hidden by default, shown by .show)
+    // This function might not even be strictly needed anymore if CSS is robust.
+    // For now, let's just remove the problematic line.
+    if (!searchContainer.classList.contains('show')) {
+        // If it's not supposed to be shown, ensure it uses class-based hiding, not inline style
+        // This is mostly handled by CSS now.
+    }
+  } else {
+    // Is mobile. If it doesn't have 'show', it should be hidden by CSS.
+    // If it has 'show', it will be shown by CSS.
+    // No specific action needed here based on the new CSS setup.
   }
 }
 
