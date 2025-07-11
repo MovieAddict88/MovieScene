@@ -2816,208 +2816,147 @@
         
         // Open viewer for content
         function openViewer(content) {
-            // Stop any currently playing content
             if (playerInstance) {
                 playerInstance.stop();
             }
 
-            // Store current content details for save/like/share
             currentContentInfo = {
-                id: content.Title, // Assuming Title is unique for now
+                id: content.Title,
                 title: content.Title,
                 type: content.type,
-                description: content.Description, // Added for download
+                description: content.Description,
                 poster: content.Poster || content.Thumbnail,
-                Servers: content.Servers // Added for download
-                // Store other relevant details if needed by other functions
+                Servers: content.Servers
             };
 
-            // Increment and display view count
             incrementViewCount(content.Title);
-
             history.pushState({ page: 'viewer', contentId: content.Title }, 'View Content', '#viewer');
 
-            // Hide browse sections
             document.querySelector('.carousel').style.display = 'none';
             document.querySelector('.filters-section').style.display = 'none';
             document.querySelector('.content-container').style.display = 'none';
 
-            // Update viewer page content
-            elements.viewerTitle.textContent = content.Title;
-            elements.viewerDescription.textContent = content.Description || 'No description available.';
-
-            // Hide episode selector by default
-            elements.episodeSelectorContainer.style.display = 'none';
-            elements.episodeSelector.innerHTML = '<option value="">Select Episode</option>';
-
-            // Hide season selector by default
-            elements.seasonSelector.style.display = 'none';
-
-            // Move selectors to their default position (inside videoDetails) before deciding to move them
-            if (elements.episodeSelectorContainer.parentNode !== elements.videoDetailsContainer) {
-                elements.videoDetailsContainer.appendChild(elements.episodeSelectorContainer);
-            }
-            if (elements.seasonSelector.parentNode !== elements.videoDetailsContainer) {
-                elements.videoDetailsContainer.appendChild(elements.seasonSelector);
-            }
-
-            // Reset season and episode
-            currentSeason = null;
-            currentEpisode = null;
-            currentSeries = content;
-
-            // Render quality selector
-            if (content.Servers) {
-                updateQualitySelector(content.Servers);
-            }
-
-            // Render seasons for TV series
-            elements.seasonsGrid.innerHTML = '';
-
-            if (content.type === 'series' && content.Seasons) {
-                // Move selectors to sidebar for series view
-                if (elements.relatedVideosContainer) { // Ensure container exists
-                    elements.relatedVideosContainer.prepend(elements.seasonSelector);
-                    elements.relatedVideosContainer.prepend(elements.episodeSelectorContainer);
+            const setupViewerAndPlay = () => {
+                elements.viewerTitle.textContent = content.Title;
+                elements.viewerDescription.textContent = content.Description || 'No description available.';
+                // Reset selectors
+                elements.episodeSelectorContainer.style.display = 'none';
+                elements.episodeSelector.innerHTML = '<option value="">Select Episode</option>';
+                elements.seasonSelector.style.display = 'none';
+                if (elements.episodeSelectorContainer.parentNode !== elements.videoDetailsContainer) {
+                    elements.videoDetailsContainer.appendChild(elements.episodeSelectorContainer);
                 }
-                elements.seasonSelector.style.display = 'block';
-                // episodeSelectorContainer display is handled in openSeason
+                if (elements.seasonSelector.parentNode !== elements.videoDetailsContainer) {
+                    elements.videoDetailsContainer.appendChild(elements.seasonSelector);
+                }
 
-                content.Seasons.forEach(season => {
-                    const seasonCard = document.createElement('div');
-                    seasonCard.className = 'season-card';
-                    seasonCard.innerHTML = `
-                        <img src="${season.SeasonPoster || content.Thumbnail}" alt="Season ${season.Season}" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE_URL}';">
-                        <div class="season-info">
-                            <h4>Season ${season.Season}</h4>
+                currentSeason = null;
+                currentEpisode = null;
+                currentSeries = content;
+
+                if (content.Servers) {
+                    updateQualitySelector(content.Servers);
+                }
+                elements.seasonsGrid.innerHTML = '';
+
+                // ensureEpisodeButtonsInControls(); // This call is removed, logic moved to updateNavigationButtonsState
+
+                if (content.type === 'series' && content.Seasons) {
+                    if (elements.relatedVideosContainer) {
+                        elements.relatedVideosContainer.prepend(elements.seasonSelector);
+                        elements.relatedVideosContainer.prepend(elements.episodeSelectorContainer);
+                    }
+                    elements.seasonSelector.style.display = 'block';
+                    content.Seasons.forEach(season => { /* ... render season card ... */
+                        const seasonCard = document.createElement('div');
+                        seasonCard.className = 'season-card';
+                        seasonCard.innerHTML = `
+                            <img src="${season.SeasonPoster || content.Thumbnail}" alt="Season ${season.Season}" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE_URL}';">
+                            <div class="season-info">
+                                <h4>Season ${season.Season}</h4>
+                            </div>
+                        `;
+                        seasonCard.addEventListener('click', () => {
+                            openSeason(season);
+                        });
+                        elements.seasonsGrid.appendChild(seasonCard);
+                    });
+                    if (content.Seasons.length > 0) {
+                        openSeason(content.Seasons[0]); // This calls playEpisode -> updateNavigationButtonsState
+                    } else {
+                        updateNavigationButtonsState(); // Hide buttons if no seasons
+                    }
+                } else { // Movie or Live TV
+                    if (content.Servers && content.Servers.length > 0) {
+                        playUrl(content.Servers[0].url);
+                    }
+                    updateNavigationButtonsState(); // Hide episode buttons for non-series
+                }
+
+                // Render related content
+                elements.relatedGrid.innerHTML = '';
+                const relatedContent = cachedContent.filter(item => item.Title !== content.Title)
+                                               .sort(() => 0.5 - Math.random()).slice(0, 8);
+                relatedContent.forEach(item => { /* ... render related card ... */ 
+                    const card = document.createElement('div');
+                    card.className = 'related-card';
+                    const ratingHtml = generateStarRating(item.Rating);
+                    let metaNetflixStyle = '<span class="meta-netflix-style">';
+                    if (item.Year) metaNetflixStyle += `<span>${item.Year}</span>`;
+                    if (item.Country) metaNetflixStyle += `<span class="meta-country">${getCountryFlagHtml(item.Country)} ${item.Country}</span>`;
+                    if (item.Duration) metaNetflixStyle += `<span>${item.Duration}</span>`;
+                    metaNetflixStyle += '</span>';
+
+                    card.innerHTML = `
+                        <div class="related-thumbnail">
+                            <img src="${item.Thumbnail || item.Poster}" alt="${item.Title}" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE_URL}';">
+                        </div>
+                        <div class="related-info">
+                            <h4>${item.Title}</h4>
+                            <div class="related-meta-stars">${ratingHtml}</div>
+                            <div class="related-meta-details">${metaNetflixStyle}</div>
+                            <div class="related-channel">CineCraze</div>
                         </div>
                     `;
-                    seasonCard.addEventListener('click', () => {
-                        openSeason(season);
-                    });
-                    elements.seasonsGrid.appendChild(seasonCard);
+                    card.addEventListener('click', () => openViewer(item));
+                    elements.relatedGrid.appendChild(card);
                 });
+            };
 
-                // Automatically open the first season and play its first episode
-                if (content.Seasons.length > 0) {
-                    openSeason(content.Seasons[0]); // This calls playEpisode, which calls updateNavigationButtonsState
-                } else {
-                    // Series has no seasons, ensure buttons are hidden/disabled
-                    updateNavigationButtonsState();
-                }
-            } else { // Movie or Live TV (or any other non-series type)
-                // Play the first server by default for movies
-                if (content.Servers && content.Servers.length > 0) {
-                    playUrl(content.Servers[0].url);
-                }
-                updateNavigationButtonsState(); // Ensure buttons hidden for non-series
-            }
-
-            // Render related content
-            elements.relatedGrid.innerHTML = '';
-            // Get 4 random related items (excluding current)
-            const relatedContent = cachedContent
-                .filter(item => item.Title !== content.Title)
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 8);
-
-            relatedContent.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'related-card';
-                // Construct meta information similar to list view
-                const ratingHtml = generateStarRating(item.Rating);
-                let metaNetflixStyle = '<span class="meta-netflix-style">';
-                if (item.Year) {
-                    metaNetflixStyle += `<span>${item.Year}</span>`;
-                }
-                if (item.Country) {
-                    metaNetflixStyle += `<span class="meta-country">${getCountryFlagHtml(item.Country)} ${item.Country}</span>`;
-                }
-                if (item.Duration) {
-                    metaNetflixStyle += `<span>${item.Duration}</span>`;
-                }
-                metaNetflixStyle += '</span>';
-
-                card.innerHTML = `
-                    <div class="related-thumbnail">
-                        <img src="${item.Thumbnail || item.Poster}" alt="${item.Title}" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE_URL}';">
-                    </div>
-                    <div class="related-info">
-                        <h4>${item.Title}</h4>
-                        <div class="related-meta-stars">
-                            ${ratingHtml}
-                        </div>
-                        <div class="related-meta-details">
-                            ${metaNetflixStyle}
-                        </div>
-                        <div class="related-channel">CineCraze</div>
-                    </div>
-                `;
-                card.addEventListener('click', () => openViewer(item));
-                elements.relatedGrid.appendChild(card);
-            });
-
-            // Hide main content and show viewer
-            elements.viewerPage.style.display = 'block';
-
-            // Initialize player if not already done
             if (!playerInstance) {
                 playerInstance = new Plyr('#player', {
-                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'fullscreen'], // Removed prevtrack/nexttrack
-                    youtube: {
-                        noCookie: true,
-                        rel: 0,
-                        showinfo: 0,
-                        iv_load_policy: 3
-                    }
+                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'fullscreen'],
+                    youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3 }
                 });
 
-                playerInstance.on('ready', () => {
-                    const controlsContainer = playerInstance.elements.controls;
-                    if (controlsContainer && elements.prevEpisodeBtn && elements.nextEpisodeBtn) {
-                        const settingsButton = controlsContainer.querySelector('button[data-plyr="settings"]');
-                        if (settingsButton) {
-                            settingsButton.parentNode.insertBefore(elements.prevEpisodeBtn, settingsButton);
-                            settingsButton.parentNode.insertBefore(elements.nextEpisodeBtn, settingsButton);
-                        } else {
-                            // Fallback: append if settings button not found
-                            controlsContainer.appendChild(elements.prevEpisodeBtn);
-                            controlsContainer.appendChild(elements.nextEpisodeBtn);
+                playerInstance.once('ready', event => {
+                    setupViewerAndPlay();
+                    // Event listeners for fullscreen etc. should be attached here too, only once
+                    playerInstance.on('enterfullscreen', () => {
+                        if (screen.orientation && screen.orientation.lock) {
+                            screen.orientation.lock('landscape').catch(error => {
+                                console.log('Orientation lock failed: ', error);
+                            });
                         }
-                        // Buttons are initially hidden by default via JS creation.
-                        // updateNavigationButtonsState() will be called by openViewer/playEpisode to manage visibility.
-                    }
+                    });
+                    playerInstance.on('exitfullscreen', () => {
+                        if (screen.orientation && screen.orientation.unlock) {
+                            screen.orientation.unlock();
+                        }
+                        if (elements.searchContainer) {
+                            elements.searchContainer.classList.remove('show');
+                        }
+                    });
                 });
-
-                // Landscape orientation handling
-                playerInstance.on('enterfullscreen', () => {
-                    if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(error => {
-                            console.log('Orientation lock failed: ', error);
-                        });
-                    }
-                });
-
-                playerInstance.on('exitfullscreen', () => {
-                    if (screen.orientation && screen.orientation.unlock) {
-                        screen.orientation.unlock();
-                    }
-                    // Ensure search container is hidden when exiting fullscreen
-                    if (elements.searchContainer) {
-                        elements.searchContainer.classList.remove('show');
-                    }
-                });
+            } else {
+                // Player already exists, it should be ready.
+                setupViewerAndPlay();
             }
 
-            // Scroll to top
+            elements.viewerPage.style.display = 'block';
             window.scrollTo(0, 0);
-
-            // Setup Share Button
-            // Remove old listener before adding a new one
             elements.shareVideoBtn.removeEventListener('click', handleShareVideo);
             elements.shareVideoBtn.addEventListener('click', handleShareVideo);
-
-            // Setup Like/Dislike Buttons
             updateLikeDislikeUI(currentContentInfo.id);
             elements.likeBtn.removeEventListener('click', handleLike);
             elements.likeBtn.addEventListener('click', handleLike);
@@ -3436,41 +3375,58 @@
         function updateNavigationButtonsState() {
             const isSeriesContext = currentSeries && currentSeries.type === 'series' && currentSeason && currentEpisode;
 
-            if (!elements.prevEpisodeBtn || !elements.nextEpisodeBtn) return; 
-
-            if (!isSeriesContext) {
+            if (!elements.prevEpisodeBtn || !elements.nextEpisodeBtn) {
+                console.warn("Episode navigation buttons not created.");
+                return;
+            }
+            
+            // Ensure player and its controls are available before trying to manipulate DOM or styles
+            if (!playerInstance || !playerInstance.elements || !playerInstance.elements.controls) {
                 elements.prevEpisodeBtn.style.display = 'none';
                 elements.nextEpisodeBtn.style.display = 'none';
                 return;
             }
+            
+            const controlsContainer = playerInstance.elements.controls;
 
-            elements.prevEpisodeBtn.style.display = ''; // Show button (Plyr default display is usually fine)
-            elements.nextEpisodeBtn.style.display = ''; // Show button
+            if (!isSeriesContext) {
+                elements.prevEpisodeBtn.style.display = 'none';
+                elements.nextEpisodeBtn.style.display = 'none';
+                // Optionally, remove from DOM if they exist and if that becomes necessary,
+                // but display:none is simpler for now.
+                return;
+            }
 
+            // ---- It IS a Series Context from here ----
+
+            // 1. Ensure buttons are in the DOM for series context
+            const settingsButton = controlsContainer.querySelector('button[data-plyr="settings"]');
+            if (settingsButton) { // Preferred: insert before settings
+                if (!controlsContainer.contains(elements.prevEpisodeBtn)) {
+                    settingsButton.parentNode.insertBefore(elements.prevEpisodeBtn, settingsButton);
+                }
+                if (!controlsContainer.contains(elements.nextEpisodeBtn)) {
+                    settingsButton.parentNode.insertBefore(elements.nextEpisodeBtn, settingsButton);
+                }
+            } else { // Fallback: append if settings button isn't found
+                if (!controlsContainer.contains(elements.prevEpisodeBtn)) {
+                    controlsContainer.appendChild(elements.prevEpisodeBtn);
+                }
+                if (!controlsContainer.contains(elements.nextEpisodeBtn)) {
+                    controlsContainer.appendChild(elements.nextEpisodeBtn);
+                }
+            }
+
+            // 2. Set visibility
+            elements.prevEpisodeBtn.style.display = ''; 
+            elements.nextEpisodeBtn.style.display = ''; 
+
+            // 3. Set enabled/disabled state
             const currentEpisodeIndex = currentSeason.Episodes.findIndex(ep => ep.Episode === currentEpisode.Episode);
             const currentSeasonIndex = currentSeries.Seasons.findIndex(s => s.Season === currentSeason.Season);
 
-            // Previous button state
-            if (currentEpisodeIndex > 0) { 
-                elements.prevEpisodeBtn.disabled = false;
-            } else { 
-                if (currentSeasonIndex > 0) { 
-                    elements.prevEpisodeBtn.disabled = false;
-                } else { 
-                    elements.prevEpisodeBtn.disabled = true;
-                }
-            }
-
-            // Next button state
-            if (currentEpisodeIndex < currentSeason.Episodes.length - 1) { 
-                elements.nextEpisodeBtn.disabled = false;
-            } else { 
-                if (currentSeasonIndex < currentSeries.Seasons.length - 1) { 
-                    elements.nextEpisodeBtn.disabled = false;
-                } else { 
-                    elements.nextEpisodeBtn.disabled = true;
-                }
-            }
+            elements.prevEpisodeBtn.disabled = !(currentEpisodeIndex > 0 || currentSeasonIndex > 0);
+            elements.nextEpisodeBtn.disabled = !(currentEpisodeIndex < currentSeason.Episodes.length - 1 || currentSeasonIndex < currentSeries.Seasons.length - 1);
         }
 
         function handlePrevEpisode() {
