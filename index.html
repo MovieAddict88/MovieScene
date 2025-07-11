@@ -2144,44 +2144,67 @@
                 });
             });
         }
+
+        // Helper function to get random distinct items from an array
+        function getRandomItems(arr, count) {
+            if (!arr || arr.length === 0) return [];
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, Math.min(count, arr.length));
+        }
         
         // Render carousel
         function renderCarousel() {
-            if (!cineData || !cineData.Categories) return;
+            if (!cineData || !cineData.Categories || cineData.Categories.length < 3) {
+                console.warn("Carousel data is not as expected. Skipping render.");
+                return;
+            }
 
             const featuredContent = [];
+            const moviesCategory = cineData.Categories.find(cat => cat.MainCategory.toLowerCase().includes('movie'));
+            const seriesCategory = cineData.Categories.find(cat => cat.MainCategory.toLowerCase().includes('series'));
+            const liveCategory = cineData.Categories.find(cat => cat.MainCategory.toLowerCase().includes('live'));
 
-            // Add movies
-            cineData.Categories[0].Entries.slice(0, 3).forEach(movie => {
-                featuredContent.push({
-                    type: 'movie',
-                    title: movie.Title,
-                    description: movie.Description,
-                    image: movie.Poster
+            // Add randomly selected movies
+            if (moviesCategory && moviesCategory.Entries) {
+                getRandomItems(moviesCategory.Entries, 3).forEach(movie => {
+                    featuredContent.push({
+                        type: 'movie',
+                        title: movie.Title,
+                        description: movie.Description,
+                        image: movie.Poster,
+                        // Store original item for click handling
+                        originalItem: movie
+                    });
                 });
-            });
+            }
 
-            // Add TV series
-            cineData.Categories[1].Entries.slice(0, 1).forEach(series => {
-                featuredContent.push({
-                    type: 'series',
-                    title: series.Title,
-                    description: series.Description || `Popular ${series.SubCategory} series`,
-                    image: series.Poster
+            // Add randomly selected TV series
+            if (seriesCategory && seriesCategory.Entries) {
+                getRandomItems(seriesCategory.Entries, 1).forEach(series => {
+                    featuredContent.push({
+                        type: 'series',
+                        title: series.Title,
+                        description: series.Description || `Popular ${series.SubCategory} series`,
+                        image: series.Poster,
+                        originalItem: series
+                    });
                 });
-            });
+            }
 
-            // Add live TV
-            cineData.Categories[2].Entries.slice(0, 1).forEach(live => {
-                featuredContent.push({
-                    type: 'live',
-                    title: live.Title,
-                    description: live.Description,
-                    image: live.Poster
+            // Add randomly selected live TV
+            if (liveCategory && liveCategory.Entries) {
+                getRandomItems(liveCategory.Entries, 1).forEach(live => {
+                    featuredContent.push({
+                        type: 'live',
+                        title: live.Title,
+                        description: live.Description,
+                        image: live.Poster,
+                        originalItem: live
+                    });
                 });
-            });
+            }
 
-            // Shuffle the featured content
+            // Shuffle the order of the collected featured content
             shuffleArray(featuredContent);
 
             // Render carousel items
@@ -2216,17 +2239,13 @@
 
                 // Make carousel item clickable
                 carouselItem.addEventListener('click', () => {
-                    // Find the content and open viewer
-                    cineData.Categories.forEach(category => {
-                        const found = category.Entries.find(entry => entry.Title === item.title);
-                        if (found) {
-                            openViewer({
-                                ...found,
-                                type: category.MainCategory.toLowerCase().includes('movie') ? 'movie' :
-                                    category.MainCategory.toLowerCase().includes('series') ? 'series' : 'live'
-                            });
-                        }
-                    });
+                    if (item.originalItem) {
+                        // The 'type' is already correctly set in featuredContent items
+                        openViewer({ ...item.originalItem, type: item.type });
+                    } else {
+                        // Fallback or error if originalItem is somehow missing
+                        console.error("Carousel item is missing originalItem data:", item);
+                    }
                 });
             });
         }
