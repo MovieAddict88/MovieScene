@@ -1544,6 +1544,30 @@
             color: white !important;
         }
 
+        /* Custom Next/Previous Episode Buttons Styling for Plyr */
+        #prev-episode-btn, #next-episode-btn {
+            padding: 0;
+            width: auto;
+            margin-right: 5px; /* Space before next control (e.g., settings) */
+            /* display: none; /* Initially hidden, JS will manage visibility */
+        }
+
+        /* Icon styling within buttons - Plyr's default icon styling should apply if icons are standard */
+        /* #prev-episode-btn i, #next-episode-btn i {} */
+
+        /* Disabled state for custom buttons */
+        #prev-episode-btn:disabled, #next-episode-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Optional: Custom hover effect if needed, otherwise Plyr's default hover on .plyr__control will apply */
+        /*
+        #prev-episode-btn:not(:disabled):hover, #next-episode-btn:not(:disabled):hover {
+            background: var(--youtube-red);
+            color: #fff;
+        }
+        */
     </style>
 </head>
 <body>
@@ -1854,7 +1878,10 @@
             dislikeCountSpan: document.getElementById('dislike-count-span'),
             // Containers for moving elements
             relatedVideosContainer: document.querySelector('.related-videos'),
-            videoDetailsContainer: document.querySelector('.video-details')
+            videoDetailsContainer: document.querySelector('.video-details'),
+            // Episode navigation buttons (to be created)
+            prevEpisodeBtn: null,
+            nextEpisodeBtn: null
         };
         
         // State
@@ -1892,8 +1919,28 @@
             });
         }
         
+        // Function to create episode navigation buttons
+        function createEpisodeNavigationButtons() {
+            elements.prevEpisodeBtn = document.createElement('button');
+            elements.prevEpisodeBtn.type = 'button';
+            elements.prevEpisodeBtn.className = 'plyr__controls__item plyr__control'; // Standard Plyr classes
+            elements.prevEpisodeBtn.id = 'prev-episode-btn';
+            elements.prevEpisodeBtn.setAttribute('aria-label', 'Previous Episode');
+            elements.prevEpisodeBtn.innerHTML = '<i class="fas fa-backward"></i>';
+            elements.prevEpisodeBtn.style.display = 'none'; // Initially hidden
+
+            elements.nextEpisodeBtn = document.createElement('button');
+            elements.nextEpisodeBtn.type = 'button';
+            elements.nextEpisodeBtn.className = 'plyr__controls__item plyr__control'; // Standard Plyr classes
+            elements.nextEpisodeBtn.id = 'next-episode-btn';
+            elements.nextEpisodeBtn.setAttribute('aria-label', 'Next Episode');
+            elements.nextEpisodeBtn.innerHTML = '<i class="fas fa-forward"></i>';
+            elements.nextEpisodeBtn.style.display = 'none'; // Initially hidden
+        }
+
         // Initialize the app
         function init() {
+            createEpisodeNavigationButtons(); // Create buttons before they might be needed
             fetchData().then(() => {
                 renderCarousel();
                 renderContentFilters();
@@ -2401,13 +2448,17 @@
 
                 // Automatically open the first season and play its first episode
                 if (content.Seasons.length > 0) {
-                    openSeason(content.Seasons[0]);
+                    openSeason(content.Seasons[0]); // This calls playEpisode, which calls updateNavigationButtonsState
+                } else {
+                    // Series has no seasons, ensure buttons are hidden/disabled
+                    updateNavigationButtonsState();
                 }
-            } else if (content.type === 'movie') {
+            } else { // Movie or Live TV (or any other non-series type)
                 // Play the first server by default for movies
                 if (content.Servers && content.Servers.length > 0) {
                     playUrl(content.Servers[0].url);
                 }
+                updateNavigationButtonsState(); // Ensure buttons hidden for non-series
             }
 
             // Render related content
@@ -2441,12 +2492,29 @@
             // Initialize player if not already done
             if (!playerInstance) {
                 playerInstance = new Plyr('#player', {
-                    controls: ['play-large', 'prevtrack', 'play', 'nexttrack', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'fullscreen'],
+                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'fullscreen'], // Removed prevtrack/nexttrack
                     youtube: {
                         noCookie: true,
                         rel: 0,
                         showinfo: 0,
                         iv_load_policy: 3
+                    }
+                });
+
+                playerInstance.on('ready', () => {
+                    const controlsContainer = playerInstance.elements.controls;
+                    if (controlsContainer && elements.prevEpisodeBtn && elements.nextEpisodeBtn) {
+                        const settingsButton = controlsContainer.querySelector('button[data-plyr="settings"]');
+                        if (settingsButton) {
+                            settingsButton.parentNode.insertBefore(elements.prevEpisodeBtn, settingsButton);
+                            settingsButton.parentNode.insertBefore(elements.nextEpisodeBtn, settingsButton);
+                        } else {
+                            // Fallback: append if settings button not found
+                            controlsContainer.appendChild(elements.prevEpisodeBtn);
+                            controlsContainer.appendChild(elements.nextEpisodeBtn);
+                        }
+                        // Buttons are initially hidden by default via JS creation.
+                        // updateNavigationButtonsState() will be called by openViewer/playEpisode to manage visibility.
                     }
                 });
 
@@ -2563,6 +2631,10 @@
                 const firstEpisode = season.Episodes[0];
                 elements.episodeSelector.value = firstEpisode.Episode;
                 playEpisode(firstEpisode);
+            } else {
+                // Season has no episodes, ensure buttons reflect this
+                currentEpisode = null; // Clear currentEpisode
+                updateNavigationButtonsState();
             }
         }
         
@@ -2585,6 +2657,7 @@
             if (episode.Servers && episode.Servers.length > 0) {
                 playUrl(episode.Servers[0].url);
             }
+            updateNavigationButtonsState(); // Update buttons after episode changes
         }
         
         // Close viewer (UI and state update part)
@@ -2620,6 +2693,11 @@
             currentSeason = null;
             currentSeries = null;
             currentContentInfo = {}; // Reset content info
+
+            if (elements.prevEpisodeBtn && elements.nextEpisodeBtn) {
+                elements.prevEpisodeBtn.style.display = 'none';
+                elements.nextEpisodeBtn.style.display = 'none';
+            }
 
             window.scrollTo(0, 0); // Scroll to top when returning to browse
         }
@@ -2745,6 +2823,14 @@
             // Load more button
             elements.loadMoreBtn.addEventListener('click', loadMoreContent);
 
+            // Episode navigation buttons
+            if (elements.prevEpisodeBtn) {
+                elements.prevEpisodeBtn.addEventListener('click', handlePrevEpisode);
+            }
+            if (elements.nextEpisodeBtn) {
+                elements.nextEpisodeBtn.addEventListener('click', handleNextEpisode);
+            }
+
             // Infinite scroll
             window.addEventListener('scroll', () => {
                 if (isFetching) return;
@@ -2859,6 +2945,99 @@
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', init);
+
+        // --- Episode Navigation Functionality ---
+        function updateNavigationButtonsState() {
+            const isSeriesContext = currentSeries && currentSeries.type === 'series' && currentSeason && currentEpisode;
+
+            if (!elements.prevEpisodeBtn || !elements.nextEpisodeBtn) return;
+
+            if (!isSeriesContext) {
+                elements.prevEpisodeBtn.style.display = 'none';
+                elements.nextEpisodeBtn.style.display = 'none';
+                return;
+            }
+
+            elements.prevEpisodeBtn.style.display = ''; // Show button (Plyr default display is usually fine)
+            elements.nextEpisodeBtn.style.display = ''; // Show button
+
+            const currentEpisodeIndex = currentSeason.Episodes.findIndex(ep => ep.Episode === currentEpisode.Episode);
+            const currentSeasonIndex = currentSeries.Seasons.findIndex(s => s.Season === currentSeason.Season);
+
+            // Previous button state
+            if (currentEpisodeIndex > 0) {
+                elements.prevEpisodeBtn.disabled = false;
+            } else {
+                if (currentSeasonIndex > 0) {
+                    elements.prevEpisodeBtn.disabled = false;
+                } else {
+                    elements.prevEpisodeBtn.disabled = true;
+                }
+            }
+
+            // Next button state
+            if (currentEpisodeIndex < currentSeason.Episodes.length - 1) {
+                elements.nextEpisodeBtn.disabled = false;
+            } else {
+                if (currentSeasonIndex < currentSeries.Seasons.length - 1) {
+                    elements.nextEpisodeBtn.disabled = false;
+                } else {
+                    elements.nextEpisodeBtn.disabled = true;
+                }
+            }
+        }
+
+        function handlePrevEpisode() {
+            if (!currentSeries || !currentSeason || !currentEpisode) return;
+
+            const currentEpisodeIndex = currentSeason.Episodes.findIndex(ep => ep.Episode === currentEpisode.Episode);
+            const currentSeasonIndex = currentSeries.Seasons.findIndex(s => s.Season === currentSeason.Season);
+
+            if (currentEpisodeIndex > 0) {
+                // Play previous episode in the same season
+                playEpisode(currentSeason.Episodes[currentEpisodeIndex - 1]);
+            } else {
+                // First episode of current season, try to go to previous season
+                if (currentSeasonIndex > 0) {
+                    const prevSeasonData = currentSeries.Seasons[currentSeasonIndex - 1];
+                    if (prevSeasonData.Episodes && prevSeasonData.Episodes.length > 0) {
+                        currentSeason = prevSeasonData; // Set current season context
+
+                        // Update the episode selector for the new (previous) season
+                        elements.episodeSelector.innerHTML = '<option value="">Select Episode</option>';
+                        currentSeason.Episodes.forEach(ep => {
+                            const option = document.createElement('option');
+                            option.value = ep.Episode;
+                            option.textContent = `Episode ${ep.Episode}: ${ep.Title}`;
+                            elements.episodeSelector.appendChild(option);
+                        });
+
+                        // Play the last episode of this (newly set current) previous season
+                        const targetEpisode = currentSeason.Episodes[currentSeason.Episodes.length - 1];
+                        playEpisode(targetEpisode);
+                    }
+                }
+            }
+        }
+
+        function handleNextEpisode() {
+            if (!currentSeries || !currentSeason || !currentEpisode) return;
+
+            const currentEpisodeIndex = currentSeason.Episodes.findIndex(ep => ep.Episode === currentEpisode.Episode);
+            const currentSeasonIndex = currentSeries.Seasons.findIndex(s => s.Season === currentSeason.Season);
+
+            if (currentEpisodeIndex < currentSeason.Episodes.length - 1) {
+                // Play next episode in the same season
+                playEpisode(currentSeason.Episodes[currentEpisodeIndex + 1]);
+            } else {
+                // Last episode of current season, try to go to next season
+                if (currentSeasonIndex < currentSeries.Seasons.length - 1) {
+                    const nextSeasonData = currentSeries.Seasons[currentSeasonIndex + 1];
+                    openSeason(nextSeasonData); // This will auto-play the first episode of nextSeasonData
+                }
+            }
+        }
+        // --- End Episode Navigation Functionality ---
 
         // --- Share Functionality ---
         function displayTemporaryMessage(element, message) {
