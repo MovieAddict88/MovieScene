@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CineCraze</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icon-css@4.1.7/css/flag-icons.min.css">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <style>
         :root {
@@ -257,6 +258,32 @@
             max-width: 600px;
             margin-bottom: 20px;
             color: var(--light-2);
+            font-size: 1em; /* Base size for description */
+            line-height: 1.5;
+        }
+
+        .carousel-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Space between rating and year */
+            margin-bottom: 10px; /* Space below meta and above description */
+            color: var(--light-2); /* General color for meta items */
+        }
+
+        .carousel-meta .star-rating {
+            font-size: 0.9em; /* Slightly smaller stars in carousel */
+        }
+        .carousel-meta .star-rating .fas.fa-star,
+        .carousel-meta .star-rating .fas.fa-star-half-alt {
+            color: gold;
+        }
+        .carousel-meta .star-rating .far.fa-star {
+            color: rgba(255, 255, 255, 0.5); /* Lighter empty stars for dark background */
+        }
+
+        .carousel-year {
+            font-size: 0.9em;
+            font-weight: 500;
         }
 
         .carousel-controls {
@@ -554,6 +581,50 @@
             color: var(--youtube-red);
     font-size: 18px; /* Default for desktop grid and list, and larger mobile list */
         }
+
+        .star-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px; /* Space between stars */
+        }
+
+        .star-rating .fas.fa-star,
+        .star-rating .fas.fa-star-half-alt {
+            color: gold; /* Gold color for full and half stars */
+        }
+        .star-rating .far.fa-star {
+            color: #ccc; /* Color for empty stars */
+        }
+
+        .content-card.list .card-meta .meta-netflix-style {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping if space is tight, though unlikely for 3 items */
+            align-items: center;
+            gap: 0; /* Remove gap from parent .card-meta if any was applied directly here */
+            color: var(--youtube-light-gray); /* Standard light gray for meta text */
+            font-size: 13px; /* Slightly smaller font */
+        }
+
+        .content-card.list .card-meta .meta-netflix-style span:not(:empty):not(:last-child)::after {
+            content: "·";
+            margin: 0 0.4em; /* Space around the dot */
+            color: var(--youtube-light-gray); /* Dot color */
+        }
+        .content-card.list .card-meta .meta-netflix-style span:empty {
+            display: none; /* Hide empty spans (if year/country/duration is missing) */
+        }
+
+        .content-card.list .card-meta .meta-netflix-style .meta-country {
+            display: inline-flex; /* Align flag and text */
+            align-items: center;
+            gap: 0.3em; /* Space between flag and country name */
+        }
+
+        .content-card.list .card-meta .meta-netflix-style .meta-country .fi {
+            /* Adjust size if needed, flag-icon-css default is usually good */
+            /* line-height: 1; /* Helps with vertical alignment if text is taller */
+        }
+
 
         /* Viewer Page - YouTube Style */
         .viewer-page {
@@ -2043,6 +2114,59 @@
             elements.nextEpisodeBtn.style.display = 'none'; // Initially hidden
         }
 
+        // Function to generate star rating HTML
+        function generateStarRating(ratingStr) {
+            const rating = parseFloat(ratingStr);
+            if (isNaN(rating) || rating < 0 || rating > 10) {
+                return '<span>N/A</span>';
+            }
+
+            const numStars = 5;
+            let starsHtml = '<span class="star-rating">';
+            // Convert 0-10 scale to 0-5 scale for star calculation
+            const ratingOutOfFive = rating / 2; 
+
+            for (let i = 0; i < numStars; i++) {
+                if (ratingOutOfFive >= i + 1) {
+                    starsHtml += '<i class="fas fa-star"></i>'; // Full star
+                } else if (ratingOutOfFive >= i + 0.5) {
+                    starsHtml += '<i class="fas fa-star-half-alt"></i>'; // Half star
+                } else {
+                    starsHtml += '<i class="far fa-star"></i>'; // Empty star
+                }
+            }
+            starsHtml += '</span>';
+            return starsHtml;
+        }
+
+        const countryNameToCodeMap = {
+            "USA": "us", "United States": "us", "United States of America": "us",
+            "UK": "gb", "United Kingdom": "gb",
+            "Canada": "ca",
+            "Japan": "jp",
+            "South Korea": "kr", "Korea": "kr",
+            "France": "fr",
+            "Germany": "de",
+            "India": "in",
+            "China": "cn",
+            "Spain": "es",
+            "Italy": "it",
+            "Australia": "au",
+            "Brazil": "br",
+            "Mexico": "mx",
+            "Philippines": "ph",
+            // Add more common mappings as needed
+        };
+
+        function getCountryFlagHtml(countryName) {
+            if (!countryName) return '';
+            const countryCode = countryNameToCodeMap[countryName.trim()] || countryName.toLowerCase().replace(/\s+/g, '-'); // Fallback for unmapped
+            if (countryCode) {
+                return `<span class="fi fi-${countryCode.toLowerCase()}"></span>`;
+            }
+            return ''; // Return empty if no code found, or could return countryName text
+        }
+
         // Initialize the app
         function init() {
             createEpisodeNavigationButtons(); // Create buttons before they might be needed
@@ -2216,10 +2340,18 @@
                 // Carousel item
                 const carouselItem = document.createElement('div');
                 carouselItem.className = 'carousel-item';
+                // Get year from the original item if available
+                const year = item.originalItem && item.originalItem.Year ? item.originalItem.Year : '';
+                const ratingHtml = item.originalItem ? generateStarRating(item.originalItem.Rating) : '';
+
                 carouselItem.innerHTML = `
                     <img src="${item.image}" alt="${item.title}" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE_URL}';">
                     <div class="carousel-content">
                         <h2>${item.title}</h2>
+                        <div class="carousel-meta">
+                            ${ratingHtml}
+                            ${year ? `<span class="carousel-year">${year}</span>` : ''}
+                        </div>
                         <p>${item.description}</p>
                     </div>
                 `;
@@ -2415,10 +2547,15 @@
                 <div class="card-info">
                     <h3 class="card-title">${item.Title}</h3>
                     <div class="card-meta">
-                        <span><i class="fas fa-star"></i> ${item.Rating || 'N/A'}</span>
-                        <span><i class="fas fa-clock"></i> ${item.Duration || 'N/A'}</span>
-                        ${viewType === 'list' ? `<span><i class="fas fa-globe"></i> ${item.Country || 'N/A'}</span>` : ''}
-                        ${viewType === 'list' && item.Year ? `<span><i class="fas fa-calendar-alt"></i> ${item.Year}</span>` : ''}
+                        ${generateStarRating(item.Rating)}
+                        ${viewType === 'list' ? 
+                            `<span class="meta-netflix-style">
+                                ${item.Year ? `<span>${item.Year}</span>` : ''}
+                                ${item.Country ? `<span class="meta-country">${getCountryFlagHtml(item.Country)} ${item.Country}</span>` : ''}
+                                ${item.Duration ? `<span>${item.Duration}</span>` : ''}
+                            </span>` :
+                            `<span><i class="fas fa-clock"></i> ${item.Duration || 'N/A'}</span>`
+                        }
                     </div>
                     ${viewType === 'list' ? `<p class="card-description">${item.Description || ''}</p>` : ''}
                 </div>
