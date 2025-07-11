@@ -1328,6 +1328,24 @@
             }
         }
 
+        @media (max-width: 576px) {
+            .content-card.list {
+                height: auto; /* Let content determine height */
+                min-height: 120px; /* Ensure a minimum height */
+                align-items: center; /* Vertically align items if they have different heights */
+            }
+
+            .content-card.list .card-img {
+                width: 80px;  /* New smaller width for mobile */
+                height: 120px; /* New smaller height for mobile, maintains 2:3 aspect ratio */
+                flex-shrink: 0; /* Prevent image container from shrinking */
+            }
+
+            .content-card.list .card-info {
+                padding: 10px 15px; /* Adjust padding for smaller card layout */
+            }
+        }
+
         /* Smart TV and Large Screens */
         @media (min-width: 1600px) {
             .carousel {
@@ -1465,6 +1483,19 @@
 
   .card-meta { /* This rule still applies to .content-card.list .card-meta */
     font-size: 11px;
+  }
+
+  .content-card.list .card-description {
+    font-size: 12px; /* Adjust description font size for small screens */
+    line-height: 1.4; /* Ensure good line spacing for readability */
+    /* Optionally, limit max lines if still too long, e.g.:
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: calc(12px * 1.4 * 3); /* font-size * line-height * lines */
+    */
   }
 }
 
@@ -2731,6 +2762,7 @@
                 elements.listViewBtn.classList.remove('active');
                 currentView = 'grid';
                 renderCurrentView();
+                setupLazyLoading(); // Ensure lazy loading is re-initialized for the new view
             });
 
             elements.listViewBtn.addEventListener('click', () => {
@@ -2738,6 +2770,7 @@
                 elements.gridViewBtn.classList.remove('active');
                 currentView = 'list';
                 renderCurrentView();
+                setupLazyLoading(); // Ensure lazy loading is re-initialized for the new view
             });
 
             // Filter changes
