@@ -482,11 +482,14 @@
 
 .content-card.grid .card-info {
   padding: 10px;
-  min-height: 80px;
+  /* min-height: 80px; Adjusted: Let content define height, title is centered */
   background-color: var(--youtube-dark-gray);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: center; /* This will center the title vertically */
+  align-items: center; /* Center title horizontally if it's not full width */
+  text-align: center; /* Ensure text within title is centered if it wraps */
+  flex-grow: 1; /* Allow card-info to take available space */
 }
 
 
@@ -507,10 +510,13 @@
   text-overflow: ellipsis;
   word-break: break-word;
   font-size: 16px;
-  height: 3.0em; /* Adjusted for better fit with 2-line clamp */
+  max-height: 3.0em; /* Use max-height instead of height for flexibility */
+  width: 100%; /* Ensure title takes full width of its container */
 }
 
-
+.content-card.grid .card-title {
+    height: auto; /* Allow title to define its own height up to max-height / line-clamp */
+}
 
 
 .card-meta {
@@ -518,6 +524,10 @@
     gap: 10px;
     font-size: 14px;
     color: var(--youtube-light-gray);
+}
+
+.content-card.grid .card-meta {
+    display: none; /* Hide rating and duration in grid view */
 }
 
 
@@ -2294,6 +2304,7 @@
                         <span><i class="fas fa-star"></i> ${item.Rating || 'N/A'}</span>
                         <span><i class="fas fa-clock"></i> ${item.Duration || 'N/A'}</span>
                         ${viewType === 'list' ? `<span><i class="fas fa-globe"></i> ${item.Country || 'N/A'}</span>` : ''}
+                        ${viewType === 'list' && item.Year ? `<span><i class="fas fa-calendar-alt"></i> ${item.Year}</span>` : ''}
                     </div>
                     ${viewType === 'list' ? `<p class="card-description">${item.Description || ''}</p>` : ''}
                 </div>
