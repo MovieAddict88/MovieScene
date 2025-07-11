@@ -2372,7 +2372,7 @@
             try {
                 elements.loadingSpinner.style.display = 'block';
 
-                const response = await fetch("https://movie-fcs.fwh.is/cini/pagsure.json");
+                const response = await fetch("https://movie-fcs.fwh.is/cinecraze/pagsure.json");
                 if (!response.ok) throw new Error("Online source failed");
 
                 cineData = await response.json();
@@ -2659,6 +2659,9 @@
 
             // Show/hide load more button
             updateLoadMoreButton();
+            
+            // Re-initialize lazy loading for the new content
+            setupLazyLoading(); 
         }
 
         // Render the current view (grid or list)
@@ -3115,7 +3118,7 @@
             currentEpisode = episode;
 
             // Update the viewer title to include episode info
-            elements.viewerTitle.textContent = `${currentSeries.Title} - Episode ${episode.Episode}`;
+            elements.viewerTitle.textContent = `${currentSeries.Title} - ${episode.Title}`;
 
             // Update the description to the episode description
             elements.viewerDescription.textContent = episode.Description || currentSeries.Description;
