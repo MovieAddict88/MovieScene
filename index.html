@@ -78,8 +78,16 @@
             text-decoration: none;
         }
 
-        .logo i {
-            color: var(--youtube-red);
+        /* .logo i { */ /* This rule is no longer needed as the <i> tag was replaced */
+            /* color: var(--youtube-red); */
+        /* } */
+
+        .logo img {
+            height: 30px;
+            width: 30px;  /* Set width equal to height for a circle */
+            border-radius: 50%; /* Makes the image circular */
+            object-fit: cover; /* Ensures the image covers the area, useful if not square */
+            /* No specific color property needed for img, but ensure it's not affected by parent color if it were an SVG with currentColog */
         }
 
         .search-container {
@@ -1670,7 +1678,7 @@
     <!-- Header -->
     <header>
         <a href="#" class="logo">
-            <i class="fas fa-play-circle"></i>
+            <img src="https://movie-fcs.fwh.is/cinecraze/cinecraze.png" alt="CineCraze Logo">
             <span>CineCraze</span>
         </a>
 
