@@ -517,15 +517,125 @@
         }
 
 .content-card.grid .card-info {
-  padding: 10px;
-  /* min-height: 80px; Adjusted: Let content define height, title is centered */
+  padding: 8px; /* Reduced padding to save space */
   background-color: var(--youtube-dark-gray);
   display: flex;
   flex-direction: column;
-  justify-content: center; /* This will center the title vertically */
-  align-items: center; /* Center title horizontally if it's not full width */
-  text-align: center; /* Ensure text within title is centered if it wraps */
-  flex-grow: 1; /* Allow card-info to take available space */
+  justify-content: flex-start; /* Align content to the top */
+  align-items: center;
+  text-align: center;
+  flex-grow: 1;
+  overflow: hidden; /* Hide overflow from card-info itself */
+}
+
+.content-card.grid .card-title {
+    height: auto; /* Allow title to define its own height up to max-height / line-clamp */
+    margin-bottom: 5px; /* Add some space below the title before meta */
+}
+
+.content-card.grid .card-meta {
+    /* display: none; */ /* Hide rating and duration in grid view - Commented out to show meta */
+    display: flex; /* Ensure it's a flex container */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+    gap: 4px; /* Reduced gap between meta items slightly */
+    margin-top: 0; /* Reset margin-top as title has margin-bottom */
+    padding: 0 5px; /* Add some horizontal padding if needed */
+    width: 100%; /* Take full width to allow text centering */
+}
+
+.content-card.grid .card-meta .star-rating {
+    font-size: 12px; /* Slightly smaller star size for grid */
+}
+
+.content-card.grid .card-meta span { /* Target direct span children for duration/country */
+    font-size: 11px; /* Slightly smaller text size for duration/country */
+    text-align: center; /* Ensure text is centered */
+    display: inline-flex; /* To allow icon and text on same line if needed */
+    align-items: center;
+    gap: 3px; /* Space between icon and text if any */
+}
+
+.content-card.grid .card-meta .meta-country {
+    white-space: nowrap; /* Prevent country name from wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%; /* Prevent very long country names from breaking layout */
+}
+
+.content-card.grid .card-meta .meta-country .fi {
+    font-size: 0.8em; /* Slightly smaller flag in grid */
+    flex-shrink: 0; /* Prevent flag from shrinking */
+}
+
+.content-card.grid .card-meta span .fas.fa-clock {
+    color: inherit; /* Make clock icon inherit color from parent span (i.e., neutral) */
+}
+
+/* Adjustments to ensure card-info does not exceed its allocated 15% height too much */
+.content-card.grid {
+    /* aspect-ratio: 2 / 3; already defined */
+    /* Ensure the card itself handles overflow if card-info becomes too tall */
+    overflow: hidden; 
+}
+
+.content-card.grid .card-img {
+    height: 70%; /* Adjusted image height after removing description from grid info */
+}
+
+/* For very small screens where aspect-ratio is auto, image height is also 70% */
+/* No specific override needed here if the main rule is now 70% unless a different value is desired */
+/* The @media (max-width: 480px) .content-card.grid .card-img rule can be removed if it's also 70% */
+/* For clarity, I will remove the specific override if it's the same as the new base. */
+
+@media (max-width: 480px) {
+  /* .content-card.grid .card-img { height: 70%; } */ /* This is now covered by the general rule above */
+
+  .content-card.grid .card-info {
+    min-height: 100px;
+    justify-content: flex-start; /* Align content to top */
+  }
+
+  .content-card.grid .card-meta {
+    display: flex; /* Ensure meta is still shown, removing the old display:none rule from this breakpoint */
+  }
+
+          /* General card title adjustments for very small screens */
+          .card-title { /* Applies to both grid and list unless overridden */
+    font-size: 13px;
+            -webkit-line-clamp: 2; /* Ensure 2 lines */
+            /* height was !important, use max-height if possible for flexibility */
+            max-height: calc(13px * 1.4 * 2);
+            overflow: hidden !important; /* Retained from previous fix, but check if needed */
+          }
+          /* Specific override for list view title if needed, or let general rule apply */
+          .content-card.list .card-title {
+             font-size: 14px; /* Example: slightly larger than grid title on smallest screens */
+             max-height: calc(14px * 1.4 * 2);
+  }
+
+
+  .card-meta { /* This rule still applies to .content-card.list .card-meta */
+            font-size: 11px; /* Already set */
+             margin-top: 3px; /* Adjust margin */
+  }
+           .content-card.list .card-meta { /* Specific for list view on smallest screens */
+               font-size: 11px;
+           }
+
+
+  .content-card.list .card-description {
+    font-size: 12px; /* Adjust description font size for small screens */
+    line-height: 1.4; /* Ensure good line spacing for readability */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2; /* Limit to 2 lines */
+    overflow: hidden;
+    text-overflow: ellipsis;
+            margin-top: 3px; /* Adjust margin */
+            /* max-height: calc(12px * 1.4 * 2); /* Fallback for non-webkit */
+    */
+  }
 }
 
 
@@ -563,7 +673,32 @@
 }
 
 .content-card.grid .card-meta {
-    display: none; /* Hide rating and duration in grid view */
+    /* display: none; */ /* Hide rating and duration in grid view - Commented out to show meta */
+    display: flex; /* Ensure it's a flex container */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+    gap: 5px; /* Add some space between meta items */
+    margin-top: 8px; /* Add space above the meta section */
+    padding: 0 5px; /* Add some horizontal padding if needed */
+}
+
+.content-card.grid .card-meta .star-rating {
+    font-size: 13px; /* Adjust star size for grid */
+}
+
+.content-card.grid .card-meta span { /* Target direct span children for duration/country */
+    font-size: 12px; /* Adjust text size for duration/country */
+    text-align: center; /* Ensure text is centered */
+}
+
+/* Ensure Netflix-style meta for list view is not affected if it shares general span tags */
+.content-card.list .card-meta .meta-netflix-style span {
+    font-size: 13px; /* Keep original list view font size or adjust as needed */
+    text-align: left; /* Keep original alignment for list view */
+}
+
+.content-card.grid .card-meta .meta-country .fi {
+    font-size: 0.9em; /* Slightly smaller flag in grid */
 }
 
 
@@ -1593,7 +1728,11 @@
   }
 
   .content-card.grid .card-meta {
-    display: none; /* Hide meta for more title space on small mobile grid */
+    /* display: none; */ /* Hide meta for more title space on small mobile grid - Overridden to show meta */
+    display: flex !important; /* Ensure it's shown and stacked, overriding any other display properties. !important to be sure. */
+    flex-direction: column;
+    align-items: center;
+    gap: 4px; /* Consistent with other grid meta styling */
   }
 
           /* General card title adjustments for very small screens */
@@ -2554,7 +2693,8 @@
                                 ${item.Country ? `<span class="meta-country">${getCountryFlagHtml(item.Country)} ${item.Country}</span>` : ''}
                                 ${item.Duration ? `<span>${item.Duration}</span>` : ''}
                             </span>` :
-                            `<span><i class="fas fa-clock"></i> ${item.Duration || 'N/A'}</span>`
+                            `${item.Duration ? `<span><i class="fas fa-clock"></i> ${item.Duration}</span>` : ''}
+                             ${item.Country ? `<span class="meta-country">${getCountryFlagHtml(item.Country)} ${item.Country}</span>` : ''}`
                         }
                     </div>
                     ${viewType === 'list' ? `<p class="card-description">${item.Description || ''}</p>` : ''}
