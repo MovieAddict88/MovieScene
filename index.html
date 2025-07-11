@@ -2750,6 +2750,12 @@
             if (episode.Servers && episode.Servers.length > 0) {
                 playUrl(episode.Servers[0].url);
             }
+
+            // Ensure the episode selector reflects the current episode
+            if (elements.episodeSelector && episode.Episode !== undefined) {
+                elements.episodeSelector.value = episode.Episode;
+            }
+
             updateNavigationButtonsState(); // Update buttons after episode changes
         }
         
