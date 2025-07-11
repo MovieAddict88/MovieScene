@@ -440,10 +440,11 @@
         }
 
         .card-img img {
+    display: block; /* Ensure image behaves as a block-level element */
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: var(--transition);
+    /* transition: var(--transition); Removed as opacity transition is more specific */
             opacity: 0; /* Start with opacity 0 for lazy loading */
             transition: opacity 0.3s ease;
         }
@@ -482,11 +483,14 @@
 
 .content-card.grid .card-info {
   padding: 10px;
-  min-height: 80px;
+  /* min-height: 80px; Adjusted: Let content define height, title is centered */
   background-color: var(--youtube-dark-gray);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: center; /* This will center the title vertically */
+  align-items: center; /* Center title horizontally if it's not full width */
+  text-align: center; /* Ensure text within title is centered if it wraps */
+  flex-grow: 1; /* Allow card-info to take available space */
 }
 
 
@@ -507,10 +511,13 @@
   text-overflow: ellipsis;
   word-break: break-word;
   font-size: 16px;
-  height: 3.0em; /* Adjusted for better fit with 2-line clamp */
+  max-height: 3.0em; /* Use max-height instead of height for flexibility */
+  width: 100%; /* Ensure title takes full width of its container */
 }
 
-
+.content-card.grid .card-title {
+    height: auto; /* Allow title to define its own height up to max-height / line-clamp */
+}
 
 
 .card-meta {
@@ -518,6 +525,10 @@
     gap: 10px;
     font-size: 14px;
     color: var(--youtube-light-gray);
+}
+
+.content-card.grid .card-meta {
+    display: none; /* Hide rating and duration in grid view */
 }
 
 
@@ -1318,6 +1329,63 @@
             }
         }
 
+        @media (max-width: 576px) {
+            .content-card.list {
+                height: 140px; /* Fixed height for consistent card size */
+                align-items: center; /* Vertically align card-img and card-info */
+                overflow: hidden; /* Clip content that might overflow the fixed height */
+            }
+
+            .content-card.list .card-img {
+                width: 80px;  /* New smaller width for mobile */
+                height: 120px; /* New smaller height for mobile, maintains 2:3 aspect ratio */
+                flex-shrink: 0; /* Prevent image container from shrinking */
+                /* background-color: red; --- REMOVED DEBUG --- */
+            }
+
+            .content-card.list .card-img img {
+                /* background-color: blue; --- REMOVED DEBUG --- */
+                /* Ensure other img styles are still considered if this overrides the global one */
+                display: block;
+                width: 100%; /* This will be 80px */
+                height: 120px !important; /* Explicitly set height, using !important for emphasis - assess if !important still needed */
+                object-fit: cover;
+            }
+
+            .content-card.list .card-info {
+                padding: 10px 15px; /* Adjust padding for smaller card layout */
+                display: flex;
+                flex-direction: column;
+                justify-content: center; /* Helps align content vertically if card is taller */
+            }
+
+            .content-card.list .card-title {
+                font-size: 15px; /* Slightly smaller title */
+                -webkit-line-clamp: 2;
+                max-height: calc(15px * 1.4 * 2); /* Corresponds to 2 lines */
+                overflow: hidden;
+                text-overflow: ellipsis;
+                /* display: -webkit-box; and -webkit-box-orient: vertical; are global */
+            }
+
+            .content-card.list .card-meta {
+                font-size: 12px; /* Slightly smaller meta */
+                margin-top: 4px; /* Space between title and meta */
+            }
+
+            .content-card.list .card-description {
+                font-size: 13px;
+                line-height: 1.4;
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2; /* Limit to 2 lines */
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-top: 4px; /* Space between meta and description */
+                /* max-height: calc(13px * 1.4 * 2); /* Fallback for non-webkit */
+            }
+        }
+
         /* Smart TV and Large Screens */
         @media (min-width: 1600px) {
             .carousel {
@@ -1444,17 +1512,41 @@
     display: none; /* Hide meta for more title space on small mobile grid */
   }
 
-  .card-title {
+          /* General card title adjustments for very small screens */
+          .card-title { /* Applies to both grid and list unless overridden */
     font-size: 13px;
-    -webkit-line-clamp: 2;
-    height: 2.8em !important; /* Precise for 2 lines (13px * 1.4 * 2), !important retained from previous fix */
-    overflow: hidden !important; /* Retained from previous fix */
-    /* text-overflow: ellipsis; and word-break: break-word; inherited */
-    /* display: -webkit-box; and -webkit-box-orient: vertical; inherited */
+            -webkit-line-clamp: 2; /* Ensure 2 lines */
+            /* height was !important, use max-height if possible for flexibility */
+            max-height: calc(13px * 1.4 * 2);
+            overflow: hidden !important; /* Retained from previous fix, but check if needed */
+          }
+          /* Specific override for list view title if needed, or let general rule apply */
+          .content-card.list .card-title {
+             font-size: 14px; /* Example: slightly larger than grid title on smallest screens */
+             max-height: calc(14px * 1.4 * 2);
   }
 
+
   .card-meta { /* This rule still applies to .content-card.list .card-meta */
-    font-size: 11px;
+            font-size: 11px; /* Already set */
+             margin-top: 3px; /* Adjust margin */
+  }
+           .content-card.list .card-meta { /* Specific for list view on smallest screens */
+               font-size: 11px;
+           }
+
+
+  .content-card.list .card-description {
+    font-size: 12px; /* Adjust description font size for small screens */
+    line-height: 1.4; /* Ensure good line spacing for readability */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2; /* Limit to 2 lines */
+    overflow: hidden;
+    text-overflow: ellipsis;
+            margin-top: 3px; /* Adjust margin */
+            /* max-height: calc(12px * 1.4 * 2); /* Fallback for non-webkit */
+    */
   }
 }
 
@@ -2294,6 +2386,7 @@
                         <span><i class="fas fa-star"></i> ${item.Rating || 'N/A'}</span>
                         <span><i class="fas fa-clock"></i> ${item.Duration || 'N/A'}</span>
                         ${viewType === 'list' ? `<span><i class="fas fa-globe"></i> ${item.Country || 'N/A'}</span>` : ''}
+                        ${viewType === 'list' && item.Year ? `<span><i class="fas fa-calendar-alt"></i> ${item.Year}</span>` : ''}
                     </div>
                     ${viewType === 'list' ? `<p class="card-description">${item.Description || ''}</p>` : ''}
                 </div>
@@ -2720,6 +2813,7 @@
                 elements.listViewBtn.classList.remove('active');
                 currentView = 'grid';
                 renderCurrentView();
+                setupLazyLoading(); // Ensure lazy loading is re-initialized for the new view
             });
 
             elements.listViewBtn.addEventListener('click', () => {
@@ -2727,6 +2821,7 @@
                 elements.gridViewBtn.classList.remove('active');
                 currentView = 'list';
                 renderCurrentView();
+                setupLazyLoading(); // Ensure lazy loading is re-initialized for the new view
             });
 
             // Filter changes
