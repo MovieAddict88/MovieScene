@@ -78,8 +78,16 @@
             text-decoration: none;
         }
 
-        .logo i {
-            color: var(--youtube-red);
+        /* .logo i { */ /* This rule is no longer needed as the <i> tag was replaced */
+            /* color: var(--youtube-red); */
+        /* } */
+
+        .logo img {
+            height: 30px; 
+            width: 30px;  /* Set width equal to height for a circle */
+            border-radius: 50%; /* Makes the image circular */
+            object-fit: cover; /* Ensures the image covers the area, useful if not square */
+            /* No specific color property needed for img, but ensure it's not affected by parent color if it were an SVG with currentColog */
         }
 
         .search-container {
@@ -828,8 +836,9 @@
         }
 
         .season-card img {
+    display: block; /* Ensure block behavior */
             width: 100%;
-            height: 100px; /* Reduced height for smaller cards */
+    height: 140px; /* Increased base height */
             object-fit: cover;
         }
 
@@ -1438,7 +1447,7 @@
             }
 
             .season-card img {
-                height: 200px;
+                height: 240px; /* Increased height for very large screens */
             }
 
             .related-videos {
@@ -1478,7 +1487,11 @@
 }
 @media (min-width: 769px) {
   .search-container {
-    display: block !important;
+    /* display: block !important; */ /* Default to hidden, shown by .show class */
+    display: none; 
+  }
+  .search-container.show { /* Ensure .show works on desktop too */
+    display: block !important; 
   }
 }
 .mobile-search-btn {
@@ -1666,7 +1679,7 @@
     <!-- Header -->
     <header>
         <a href="#" class="logo">
-            <i class="fas fa-play-circle"></i>
+            <img src="https://movie-fcs.fwh.is/cinecraze/cinecraze.png" alt="CineCraze Logo">
             <span>CineCraze</span>
         </a>
 
@@ -2132,44 +2145,67 @@
                 });
             });
         }
+
+        // Helper function to get random distinct items from an array
+        function getRandomItems(arr, count) {
+            if (!arr || arr.length === 0) return [];
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, Math.min(count, arr.length));
+        }
         
         // Render carousel
         function renderCarousel() {
-            if (!cineData || !cineData.Categories) return;
+            if (!cineData || !cineData.Categories || cineData.Categories.length < 3) {
+                console.warn("Carousel data is not as expected. Skipping render.");
+                return;
+            }
 
             const featuredContent = [];
+            const moviesCategory = cineData.Categories.find(cat => cat.MainCategory.toLowerCase().includes('movie'));
+            const seriesCategory = cineData.Categories.find(cat => cat.MainCategory.toLowerCase().includes('series'));
+            const liveCategory = cineData.Categories.find(cat => cat.MainCategory.toLowerCase().includes('live'));
 
-            // Add movies
-            cineData.Categories[0].Entries.slice(0, 3).forEach(movie => {
-                featuredContent.push({
-                    type: 'movie',
-                    title: movie.Title,
-                    description: movie.Description,
-                    image: movie.Poster
+            // Add randomly selected movies
+            if (moviesCategory && moviesCategory.Entries) {
+                getRandomItems(moviesCategory.Entries, 3).forEach(movie => {
+                    featuredContent.push({
+                        type: 'movie',
+                        title: movie.Title,
+                        description: movie.Description,
+                        image: movie.Poster,
+                        // Store original item for click handling
+                        originalItem: movie 
+                    });
                 });
-            });
+            }
 
-            // Add TV series
-            cineData.Categories[1].Entries.slice(0, 1).forEach(series => {
-                featuredContent.push({
-                    type: 'series',
-                    title: series.Title,
-                    description: series.Description || `Popular ${series.SubCategory} series`,
-                    image: series.Poster
+            // Add randomly selected TV series
+            if (seriesCategory && seriesCategory.Entries) {
+                getRandomItems(seriesCategory.Entries, 1).forEach(series => {
+                    featuredContent.push({
+                        type: 'series',
+                        title: series.Title,
+                        description: series.Description || `Popular ${series.SubCategory} series`,
+                        image: series.Poster,
+                        originalItem: series 
+                    });
                 });
-            });
+            }
 
-            // Add live TV
-            cineData.Categories[2].Entries.slice(0, 1).forEach(live => {
-                featuredContent.push({
-                    type: 'live',
-                    title: live.Title,
-                    description: live.Description,
-                    image: live.Poster
+            // Add randomly selected live TV
+            if (liveCategory && liveCategory.Entries) {
+                getRandomItems(liveCategory.Entries, 1).forEach(live => {
+                    featuredContent.push({
+                        type: 'live',
+                        title: live.Title,
+                        description: live.Description,
+                        image: live.Poster,
+                        originalItem: live 
+                    });
                 });
-            });
+            }
 
-            // Shuffle the featured content
+            // Shuffle the order of the collected featured content
             shuffleArray(featuredContent);
 
             // Render carousel items
@@ -2204,17 +2240,13 @@
 
                 // Make carousel item clickable
                 carouselItem.addEventListener('click', () => {
-                    // Find the content and open viewer
-                    cineData.Categories.forEach(category => {
-                        const found = category.Entries.find(entry => entry.Title === item.title);
-                        if (found) {
-                            openViewer({
-                                ...found,
-                                type: category.MainCategory.toLowerCase().includes('movie') ? 'movie' :
-                                    category.MainCategory.toLowerCase().includes('series') ? 'series' : 'live'
-                            });
-                        }
-                    });
+                    if (item.originalItem) {
+                        // The 'type' is already correctly set in featuredContent items
+                        openViewer({ ...item.originalItem, type: item.type });
+                    } else {
+                        // Fallback or error if originalItem is somehow missing
+                        console.error("Carousel item is missing originalItem data:", item);
+                    }
                 });
             });
         }
@@ -2624,6 +2656,10 @@
                     if (screen.orientation && screen.orientation.unlock) {
                         screen.orientation.unlock();
                     }
+                    // Ensure search container is hidden when exiting fullscreen
+                    if (elements.searchContainer) {
+                        elements.searchContainer.classList.remove('show');
+                    }
                 });
             }
 
@@ -2750,6 +2786,12 @@
             if (episode.Servers && episode.Servers.length > 0) {
                 playUrl(episode.Servers[0].url);
             }
+
+            // Ensure the episode selector reflects the current episode
+            if (elements.episodeSelector && episode.Episode !== undefined) {
+                elements.episodeSelector.value = episode.Episode;
+            }
+
             updateNavigationButtonsState(); // Update buttons after episode changes
         }
         
@@ -2837,6 +2879,9 @@
             elements.closeSearchBtn.addEventListener('click', function() {
                 elements.searchInput.value = '';
                 elements.searchResults.style.display = 'none';
+                if (elements.searchContainer) {
+                    elements.searchContainer.classList.remove('show');
+                }
             });
 
             // Carousel controls
@@ -3323,8 +3368,24 @@ document.addEventListener('click', (e) => {
 function fixSearchVisibilityOnResize() {
   const isMobile = window.innerWidth <= 768;
   if (!isMobile) {
-    searchContainer.classList.remove('show');
-    searchContainer.style.display = 'block';
+    // searchContainer.classList.remove('show'); // Keep this, good for state cleaning if mobile was left open
+    // searchContainer.style.display = 'block'; // REMOVE: Do not force display, rely on .show class
+    // If search was open (.show) and we resize to desktop, it should remain open.
+    // If it was closed, it should remain closed.
+    // The CSS now handles the default hidden state for desktop.
+    // If '.show' is present, it will be visible due to CSS.
+    // If not mobile, and searchContainer does NOT have 'show', ensure it's hidden (CSS should do this)
+    // If it IS mobile, the mobile CSS rules apply (hidden by default, shown by .show)
+    // This function might not even be strictly needed anymore if CSS is robust.
+    // For now, let's just remove the problematic line.
+    if (!searchContainer.classList.contains('show')) {
+        // If it's not supposed to be shown, ensure it uses class-based hiding, not inline style
+        // This is mostly handled by CSS now.
+    }
+  } else {
+    // Is mobile. If it doesn't have 'show', it should be hidden by CSS.
+    // If it has 'show', it will be shown by CSS.
+    // No specific action needed here based on the new CSS setup.
   }
 }
 
