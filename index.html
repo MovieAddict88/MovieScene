@@ -507,7 +507,7 @@
   text-overflow: ellipsis;
   word-break: break-word;
   font-size: 16px;
-  height: 3.0em; /* Adjusted for better fit with 2-line clamp */
+  height: 2.8em; /* Consistent with 2 lines * 1.4 line-height */
 }
 
 
@@ -1446,9 +1446,9 @@
 
   .card-title {
     font-size: 13px;
-    -webkit-line-clamp: 2;
-    height: 2.8em !important; /* Precise for 2 lines (13px * 1.4 * 2), !important retained from previous fix */
-    overflow: hidden !important; /* Retained from previous fix */
+    -webkit-line-clamp: 3; /* Allow 3 lines on small screens */
+    height: 4.2em; /* 3 lines * 1.4 line-height = 4.2em (for font-size 13px) */
+    overflow: hidden;
     /* text-overflow: ellipsis; and word-break: break-word; inherited */
     /* display: -webkit-box; and -webkit-box-orient: vertical; inherited */
   }
